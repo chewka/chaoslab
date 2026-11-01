@@ -1,0 +1,270 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chaos Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed voxel ICP-MS lab behind a pixel filter; left column = vitals + workflow, right column = instruments + notebook, dock along the bottom */
+:root{
+  --night:#1b1631; --panel:rgba(35,29,64,.94); --edge:#4d4384; --shadow:#0e0b1d;
+  --ink:#efeaff; --muted:#a69dcc; --dim:#6f6797; --btn:#2e2754;
+  --hair:#f4d35e;                       /* blonde: the accent */
+  --walk:#5b8be0; --work:#5fe39a;
+  --ok:#bdb5e0; --warn:#ffb547; --fail:#ff5d73; --good:#5fe39a; --hurt:#ff7ab0; --event:#7cc4ff;
+  --font-display:"Pixelify Sans","Courier New",monospace;
+  --font-body:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--night);color:var(--ink);font-family:var(--font-body);font-size:13px;overflow:hidden}
+#stage{position:fixed;inset:0}
+#c{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:grab;touch-action:none}
+#c:active{cursor:grabbing}
+
+#hud{position:fixed;inset:0;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));
+  display:grid;grid-template-columns:minmax(0,300px) 1fr minmax(0,330px);grid-template-rows:minmax(0,1fr) auto;gap:12px;pointer-events:none}
+.col{display:flex;flex-direction:column;gap:12px;min-height:0}
+#left{grid-column:1;grid-row:1} #right{grid-column:3;grid-row:1}
+#hud.min .col{display:none}
+.panel{pointer-events:auto;background:var(--panel);border:2px solid var(--edge);box-shadow:4px 4px 0 var(--shadow);min-width:0}
+h1{font-family:var(--font-display);font-weight:600;font-size:22px;line-height:1;margin:0;color:var(--hair)}
+h2{font-family:var(--font-display);font-weight:400;font-size:12px;text-transform:uppercase;letter-spacing:.12em;margin:0;color:var(--muted)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+
+#status{padding:12px 14px;display:grid;gap:7px;flex:none}
+.sub{margin:0;color:var(--muted);font-size:11px}
+#clock{font-family:var(--font-display);font-size:18px;font-variant-numeric:tabular-nums}
+.vital{display:grid;grid-template-columns:52px auto 1fr;align-items:center;gap:8px}
+.vlbl{font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.icons{display:flex;gap:1px}
+.icons i{width:16px;height:15px;background-size:100% 100%;image-rendering:pixelated}
+.vnum{text-align:right;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.icons.low{animation:shake .25s steps(2) infinite}
+@keyframes shake{50%{transform:translateX(1px)}}
+#buffs{display:flex;flex-wrap:wrap;gap:4px;min-height:0}
+.buff{font-size:10px;font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border:1px solid currentColor}
+.b-good{color:var(--good)} .b-bad{color:var(--fail)} .b-info{color:var(--event)}
+.pill{font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.1em;padding:1px 7px;border:2px solid currentColor;color:var(--muted)}
+.pill[data-s="walk"]{color:var(--walk)} .pill[data-s="work"]{color:var(--work)} .pill[data-s="hurt"]{color:var(--fail)} .pill[data-s="away"]{color:var(--event)}
+#stepNo{font-size:11px;color:var(--muted)}
+#taskLabel{margin:0;font-size:12.5px;line-height:1.4;min-height:2.8em}
+.bar{height:8px;border:2px solid var(--edge);background:var(--shadow)}
+.bar i{display:block;height:100%;width:0;background:var(--hair)}
+
+#steps{padding:10px 14px;display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-height:0}
+#batchMeta{margin:0;font-size:11px;color:var(--muted);line-height:1.4}
+#flow{list-style:none;margin:0;padding:0;display:grid;gap:2px;overflow-y:auto;min-height:0}
+#flow li{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;font-size:11.5px;color:var(--dim);padding:1px 0}
+#flow .mk{width:8px;height:8px;border:2px solid currentColor}
+#flow li.done{color:var(--muted)} #flow li.done .mk{background:var(--good);border-color:var(--good)}
+#flow li.cur{color:var(--ink)} #flow li.cur .mk{background:var(--hair);border-color:var(--hair);animation:blink 1s steps(2) infinite}
+#flow li.wait{color:var(--ink)} #flow li.wait .mk{border-color:var(--event);animation:blink .6s steps(2) infinite}
+#flow li.bad{color:var(--fail)} #flow li.bad .mk{background:var(--fail);border-color:var(--fail)}
+#flow em{font-style:normal;color:var(--muted);font-variant-numeric:tabular-nums;font-size:10.5px}
+@keyframes blink{50%{opacity:.25}}
+
+#instr{padding:10px 14px;display:grid;gap:6px;flex:none}
+#instrList{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:11.5px}
+#instrList dt{color:var(--muted)}
+#instrList dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.c-ok{color:var(--good)} .c-warn{color:var(--warn)} .c-bad{color:var(--fail)} .c-info{color:var(--event)} .c-dim{color:var(--dim)}
+.meter{display:inline-block;width:70px;height:7px;border:1px solid var(--edge);background:var(--shadow);vertical-align:middle;margin-right:6px}
+.meter i{display:block;height:100%}
+
+#notebook{padding:10px 14px;display:flex;flex-direction:column;gap:6px;flex:1 1 auto;min-height:0}
+#tally{font-size:11px;color:var(--muted)}
+#log{list-style:none;margin:0;padding:0;overflow-y:auto;display:grid;gap:5px;min-height:0;align-content:start}
+#log li{display:grid;grid-template-columns:auto auto 1fr;gap:6px;line-height:1.35;font-size:11.5px;align-items:start}
+#log time{color:var(--hair);font-variant-numeric:tabular-nums}
+#log span{color:#d6d0f0}
+.tag{font-family:var(--font-display);font-size:9.5px;letter-spacing:.08em;padding:0 3px;border:1px solid currentColor;line-height:1.5;min-width:30px;text-align:center}
+.t-ok{color:var(--ok)} .t-warn{color:var(--warn)} .t-fail{color:var(--fail)} .t-good{color:var(--good)} .t-hurt{color:var(--hurt)} .t-event{color:var(--event)}
+
+#dock{grid-column:1/-1;grid-row:2;justify-self:center;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 12px;max-width:100%}
+.group{display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-width:0}
+.lbl{font-family:var(--font-display);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+button{font-family:var(--font-display);font-size:12.5px;color:var(--ink);background:var(--btn);border:2px solid var(--edge);
+  box-shadow:2px 2px 0 var(--shadow);padding:4px 8px;cursor:pointer;line-height:1.1}
+button:hover{border-color:var(--muted)}
+button:active{transform:translate(2px,2px);box-shadow:none}
+button:focus-visible{outline:2px solid var(--hair);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--hair);color:var(--shadow);border-color:var(--hair)}
+
+#banner{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:5;padding:8px 14px;
+  font-family:var(--font-display);font-size:15px;letter-spacing:.04em;max-width:calc(100% - 32px);text-align:center}
+#banner.k-fail,#banner.k-hurt{border-color:var(--fail);color:var(--fail)}
+#banner.k-good{border-color:var(--good);color:var(--good)}
+#banner.k-event{border-color:var(--event);color:var(--event)}
+
+#report{position:fixed;inset:0;display:grid;place-items:center;background:rgba(14,11,29,.72);z-index:10;padding:16px}
+#report .panel{padding:18px 20px;display:grid;gap:12px;width:min(440px,100%)}
+#repTitle{font-family:var(--font-display);font-size:22px;margin:0;color:var(--hair);text-transform:none;letter-spacing:0}
+#repSub{margin:0;color:var(--muted);line-height:1.45}
+#repStats{display:grid;grid-template-columns:1fr auto;gap:4px 16px;margin:0}
+#repStats dt{color:var(--muted)} #repStats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+
+@media (max-width:1180px){ #hud{grid-template-columns:minmax(0,260px) 1fr minmax(0,280px)} }
+@media (max-width:860px){
+  #hud{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto auto;gap:8px}
+  #left{grid-column:1;grid-row:1} #right{grid-column:1;grid-row:3}
+  #steps,#instr{display:none}
+  #status{padding:8px 12px;gap:5px} h1{font-size:18px} .sub{display:none} #taskLabel{min-height:0}
+  #notebook{max-height:20vh}
+  #dock{grid-row:4;justify-self:stretch}
+  #banner{top:auto;bottom:40%}
+}
+@media (prefers-reduced-motion:reduce){ .icons.low,#flow li .mk{animation:none!important} button:active{transform:none} }
+
+/* ---------- Chaos Lab additions: stage bar, scores, pop-ups, comic bursts, mini-games ---------- */
+:root{ --chaos:#ff7a33; --filler:#9fd8ff; }
+#mid{grid-column:2;grid-row:1;align-self:start;justify-self:center;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:760px;min-width:0;pointer-events:none}
+#stagebar{padding:10px 14px 8px;width:100%;box-sizing:border-box}
+#stages{list-style:none;margin:0;padding:14px 0 0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));position:relative}
+#stages li{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10px;line-height:1.15;text-align:center;color:var(--dim);font-family:var(--font-display);letter-spacing:.04em}
+#stages li::before{content:"";position:absolute;top:5px;left:-50%;right:50%;height:3px;background:var(--edge)}
+#stages li:first-child::before{display:none}
+#stages li.done::before,#stages li.cur::before{background:var(--good)}
+#stages .dot{position:relative;z-index:1;width:9px;height:9px;border:2px solid currentColor;background:var(--shadow)}
+#stages li.done{color:var(--muted)} #stages li.done .dot{background:var(--good);border-color:var(--good)}
+#stages li.cur{color:var(--hair)} #stages li.cur .dot{background:var(--hair);border-color:var(--hair);box-shadow:0 0 0 3px rgba(244,211,94,.25)}
+#stages li.cur .ada{position:absolute;top:-17px;width:16px;height:16px;background-size:100% 100%;image-rendering:pixelated;animation:bob .5s steps(2) infinite}
+@keyframes bob{50%{transform:translateY(-2px)}}
+#stageSay{margin:6px 0 0;text-align:center;font-size:12px;color:var(--ink)}
+#stageSay b{color:var(--hair);font-weight:500}
+#scores{display:flex;align-items:center;gap:14px;padding:5px 12px;font-family:var(--font-display)}
+#scores .sc{display:flex;align-items:baseline;gap:6px}
+#scores b{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--good)}
+#scores .chaos b{color:var(--chaos)}
+#combo{font-size:13px;color:var(--shadow);background:var(--chaos);padding:1px 7px;letter-spacing:.06em;animation:blink .5s steps(2) infinite}
+.batchtop{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+#rotorFig{margin:0;display:grid;justify-items:center;gap:2px}
+#rotorMap{width:84px;height:84px;image-rendering:pixelated}
+#rotorCap{font-size:9.5px;font-family:var(--font-display);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;max-width:96px}
+#rotorCap.bad{color:var(--fail)} #rotorCap.ok{color:var(--good)}
+#mode button[data-m="chaos"][aria-pressed="true"]{background:var(--chaos);border-color:var(--chaos)}
+#chaos{border-color:var(--chaos);color:var(--chaos)}
+#summon{position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:7;padding:10px 12px;display:grid;gap:8px;width:min(560px,calc(100% - 32px));box-sizing:border-box}
+#summonList{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:5px}
+#summonList button{text-align:left}
+#summonList button.chaos{border-color:#7a4a3a}
+#banner{top:calc(150px + env(safe-area-inset-top,0px))}
+#qte{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:8;padding:12px 16px;display:grid;gap:8px;justify-items:center;width:min(320px,calc(100% - 32px));box-sizing:border-box;border-color:var(--hair)}
+#qte p{margin:0;text-align:center}
+#qteTitle{font-family:var(--font-display);font-size:24px;color:var(--hair);letter-spacing:.04em;animation:blink .35s steps(2) infinite}
+#qteSub{font-size:11.5px;color:var(--muted)}
+#qteTrack{position:relative;width:100%;height:14px;border:2px solid var(--edge);background:var(--shadow)}
+#qteTrack i{position:absolute;top:0;bottom:0;display:block}
+#qteZone{background:rgba(95,227,154,.45)}
+#qteFill{left:0;background:var(--hair)}
+#qteMark{width:4px;margin-left:-2px;background:#fff}
+#qteBtn{font-size:16px;padding:8px 16px;background:var(--hair);color:var(--shadow);border-color:var(--hair);min-height:44px}
+#comic{position:fixed;left:50%;top:42%;z-index:9;pointer-events:none;font-family:var(--font-display);font-weight:600;font-size:clamp(40px,9vw,92px);color:var(--hair);
+  text-shadow:4px 0 0 var(--shadow),-4px 0 0 var(--shadow),0 4px 0 var(--shadow),0 -4px 0 var(--shadow),6px 6px 0 var(--chaos);white-space:nowrap;opacity:0;transform:translate(-50%,-50%)}
+#comic.go{animation:comic 1.25s steps(10) forwards}
+#comic.k-good{color:var(--good)} #comic.k-event{color:var(--event)}
+@keyframes comic{0%{opacity:1;transform:translate(-50%,-50%) scale(.3) rotate(-14deg)}15%{transform:translate(-50%,-50%) scale(1.15) rotate(-6deg)}25%{transform:translate(-50%,-50%) scale(1) rotate(-5deg)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1.05) rotate(-5deg)}}
+#popups{position:fixed;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+#popups b{position:absolute;left:0;top:0;font-family:var(--font-display);font-weight:600;font-size:15px;white-space:nowrap;text-shadow:2px 2px 0 var(--shadow),-1px -1px 0 var(--shadow);will-change:transform,opacity}
+#popups b.chaos{color:var(--chaos)} #popups b.lab{color:var(--good)} #popups b.say{color:var(--ink);font-size:13px}
+#repAward{margin:0;font-family:var(--font-display);font-size:18px;color:var(--chaos)}
+@media (max-width:860px){
+  #mid{grid-column:1;grid-row:2;max-width:none}
+  #stages li span.l{display:none}
+  #stages{padding-top:12px}
+  #scores b{font-size:15px}
+  #banner{top:auto;bottom:40%}
+  #rotorFig{display:none}
+}
+@media (prefers-reduced-motion:reduce){ #stages li.cur .ada,#combo,#qteTitle{animation:none!important} #comic.go{animation-duration:.01s} }
+</style>
+
+<div id="stage"><canvas id="c" aria-label="3D voxel ICP-MS laboratory where Ada digests cannabis samples and tests them for arsenic, cadmium, mercury and lead while chaos breaks out"></canvas></div>
+<div id="banner" class="panel" role="status" hidden></div>
+
+<div id="hud">
+  <div class="col" id="left">
+    <header class="panel" id="status">
+      <div class="row"><h1>Chaos Lab</h1><span id="clock">21:00</span></div>
+      <p class="sub">Cannabis heavy metals · As Cd Hg Pb by ICP-MS · night shift</p>
+      <div class="vital"><span class="vlbl">HP</span><span class="icons" id="hearts"></span><span class="vnum" id="hpNum">100</span></div>
+      <div class="vital"><span class="vlbl">Hunger</span><span class="icons" id="food"></span><span class="vnum" id="hungerWord">Fed</span></div>
+      <div class="vital"><span class="vlbl">Sample</span><span class="icons" id="sampleBar"></span><span class="vnum" id="sampleNum">100</span></div>
+      <div class="vital"><span class="vlbl">Instr</span><span class="icons" id="instrBar"></span><span class="vnum" id="instrNum">100</span></div>
+      <div id="buffs"></div>
+      <div class="row"><span class="pill" id="pill" data-s="idle">Idle</span><span id="stepNo"></span></div>
+      <p id="taskLabel">Clocking in</p>
+      <div class="bar" role="progressbar" aria-label="Task progress" aria-valuemin="0" aria-valuemax="100"><i id="prog"></i></div>
+    </header>
+    <section class="panel" id="steps" aria-label="Digestion workflow">
+      <div class="row"><h2 id="batchId">Batch</h2><span id="attempt" class="vnum"></span></div>
+      <div class="batchtop"><p id="batchMeta"></p><figure id="rotorFig"><canvas id="rotorMap" width="84" height="84" aria-label="Rotor map"></canvas><figcaption id="rotorCap">Rotor</figcaption></figure></div>
+      <ol id="flow"></ol>
+    </section>
+  </div>
+  <div id="mid">
+    <section class="panel" id="stagebar" aria-label="Stage bar">
+      <ol id="stages"></ol>
+      <p id="stageSay"></p>
+    </section>
+    <div class="panel" id="scores" aria-label="Scores">
+      <span class="sc"><span class="lbl">Lab</span><b id="labScore">0</b></span>
+      <span class="sc chaos"><span class="lbl">Chaos</span><b id="chaosScore">0</b></span>
+      <span id="combo" hidden></span>
+    </div>
+  </div>
+  <div class="col" id="right">
+    <section class="panel" id="instr" aria-label="Instruments"><h2>Instruments</h2><dl id="instrList"></dl></section>
+    <aside class="panel" id="notebook" aria-label="Lab notebook">
+      <div class="row"><h2>Lab notebook</h2><span id="tally"></span></div>
+      <ol id="log"></ol>
+    </aside>
+  </div>
+  <footer class="panel" id="dock">
+    <div class="group">
+      <button id="pause" type="button">Pause</button>
+      <button id="speed" type="button" aria-label="Simulation speed">1×</button>
+      <button id="follow" type="button" aria-pressed="false">Follow</button>
+      <button id="panels" type="button" aria-pressed="true">Panels</button>
+    </div>
+    <div class="group"><span class="lbl">Fail rate</span><div class="group" id="risk"></div></div>
+    <div class="group"><span class="lbl">Mode</span><div class="group" id="mode"></div></div>
+    <div class="group"><button id="chaos" type="button">Chaos!</button><button id="summonBtn" type="button" aria-expanded="false" aria-controls="summon">Summon &#9662;</button></div>
+    <div class="group"><span class="lbl">Pixel</span><div class="group" id="px"></div></div>
+  </footer>
+</div>
+
+<div id="summon" class="panel" hidden><h2>Summon an event</h2><div id="summonList"></div></div>
+<div id="qte" class="panel" hidden role="dialog" aria-live="assertive">
+  <p id="qteTitle"></p><p id="qteSub"></p>
+  <div id="qteTrack"><i id="qteZone"></i><i id="qteFill"></i><i id="qteMark"></i></div>
+  <button id="qteBtn" type="button"></button>
+</div>
+<div id="comic" aria-hidden="true"></div>
+<div id="popups" aria-hidden="true"></div>
+
+<div id="report" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="repTitle">
+    <h2 id="repTitle">Shift report</h2>
+    <p id="repSub"></p>
+    <p id="repAward"></p>
+    <dl id="repStats"></dl>
+    <button id="repBtn" type="button">Start next shift</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="core.js" charset="utf-8"></script>
+<script src="world.js" charset="utf-8"></script>
+<script src="actor.js" charset="utf-8"></script>
+<script src="jobs.js" charset="utf-8"></script>
+<script src="sim.js" charset="utf-8"></script>
+<script src="brain.js" charset="utf-8"></script>
+<script src="chaos.js" charset="utf-8"></script>
+<script src="hud.js" charset="utf-8"></script>
+
+
+</body></html>
